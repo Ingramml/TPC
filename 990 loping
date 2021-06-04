@@ -1,0 +1,139 @@
+import urllib.request
+import json
+import time
+import xml.etree.ElementTree as ET
+import pandas as pd
+import os
+
+year=2017
+url = "https://s3.amazonaws.com/irs-form-990/index_"+str(year)+".json"
+response = urllib.request.urlopen(url)
+data = json.loads(response.read())
+start_time=time.time()
+
+Filings='Filings'+str(year)
+Filings_folder=os.path.join('/Users/michael/Documents',str(year))
+
+os.makedirs(Filings_folder,exist_ok=True)
+check_list= pd.read_csv(Filings_folder+'/checklist.csv') if os.path.exists(Filings_folder+'/checklist.csv')==True else pd.DataFrame(['GrantorEIN','OrgName'])
+check_list_rows=[]
+#Filings_folder+'/'+GrantorEIN+'_'+OrganizationName+'.csv'
+for i in data[Filings]:
+    GrantorEIN=i['EIN']
+    OrganizationName=i['OrganizationName']
+    
+    check_list_rows.append([GrantorEIN,OrganizationName])
+    check_list=pd.DataFrame(check_list_rows)
+    check_list.to_csv(Filings_folder+'/checklist.csv')
+    
+    if i['EIN'] in checked_list.values : 
+        print( OrganizationName+' has been checked already') 
+    else: 
+    #if os.path.exists(Filings_folder+'/'+GrantorEIN+'_'+OrganizationName+'.csv'):print(GrantorEIN+'_'+OrganizationName+'File exist')else:
+        xmlurl=i['URL']
+        print(str(OrganizationName)+'\'s grants are being searched')
+        print(xmlurl)
+        time.sleep(.5)
+        xmlresponse = urllib.request.urlopen(xmlurl)#Core Code below
+        tree = ET.parse(xmlresponse)
+        root = tree.getroot()
+        ScheduleI=root[1].find('{http://www.irs.gov/efile}IRS990ScheduleI')
+        GrantOrContributionPdDurYrGrp_check=root[1].find("./*/*/{http://www.irs.gov/efile}GrantOrContributionPdDurYrGrp")
+        GrantOrContributionPdDurYrGrp=root[1].findall("./*/*/{http://www.irs.gov/efile}GrantOrContributionPdDurYrGrp")
+        #print('Grants to is found at'+str(GrantOrContributionPdDurYrGrp[0]))
+        if ET.iselement(ScheduleI)==True:
+            RecipientTable=ScheduleI.find('{http://www.irs.gov/efile}RecipientTable')
+            RecipientTablelist=ScheduleI.findall('{http://www.irs.gov/efile}RecipientTable')
+            rows=[]
+            for recipient in RecipientTablelist:
+                    recipient_EIN_check=recipient.find('./{http://www.irs.gov/efile}RecipientEIN')
+                    recipient_EIN = recipient_EIN_check.text if ET.iselement(recipient_EIN_check)==True else ''
+
+                    business_name_check = recipient.find('./*/{http://www.irs.gov/efile}BusinessNameLine1Txt')
+                    business_name = business_name_check.text if ET.iselement(business_name_check)==True else ''
+
+                    address_element_check = recipient.find('.*/{http://www.irs.gov/efile}AddressLine1Txt')
+                    address_element_line1 = address_element_check.text if ET.iselement(address_element_check)==True else ''
+
+                    address_element_line2_check=recipient.find('.*/{http://www.irs.gov/efile}AddressLine2Txt')
+                    address_element_line2=address_element_line2_check.text if ET.iselement(address_element_line2_check)==True else ''
+
+                    address_element_city_check=recipient.find('.*/{http://www.irs.gov/efile}CityNm')
+                    address_element_city = address_element_city_check.text if ET.iselement(address_element_city_check)== True else ''
+
+                    address_element_state_check=recipient.find('.*/{http://www.irs.gov/efile}StateAbbreviationCd')
+                    address_element_state = address_element_state_check.text if ET.iselement(address_element_state_check)==True else ''
+
+                    address_element_zip_check = recipient.find('.*/{http://www.irs.gov/efile}ZIPCd')
+                    address_element_zip = address_element_zip_check.text if ET.iselement(address_element_zip_check)==True else ''
+
+
+                    amount_element_check = recipient.find('./{http://www.irs.gov/efile}CashGrantAmt')
+                    amount_element = amount_element_check.text if ET.iselement(amount_element_check)==True else ''
+
+                    status_element_check =recipient.find('./{http://www.irs.gov/efile}IRCSectionDesc')
+                    status_element=status_element_check.text if ET.iselement(status_element_check)==True else ''
+
+                    purpose_element_check=recipient.find('./{http://www.irs.gov/efile}PurposeOfGrantTxt')
+                    purpose_element= purpose_element_check.text if ET.iselement(purpose_element_check)==True else ''
+
+                    address=address_element_line1+' '+address_element_line2+' '+address_element_city+' '+address_element_state+' '+address_element_zip
+
+
+                    rows.append([GrantorEIN,OrganizationName,recipient_EIN,business_name,address,status_element,amount_element,purpose_element])
+
+            df = pd.DataFrame(rows, columns=["grantor_EIN","grantor_name","EIN", "orgnizaiton","address","status","amount","purpose"])#creats df of orgs donations
+            df.to_csv(Filings_folder+'/'+GrantorEIN+'_'+OrganizationName+'.csv')
+        
+            
+        elif ET.iselement(GrantOrContributionPdDurYrGrp_check)==True:
+            grants_list=root[1].findall("./*/*/{http://www.irs.gov/efile}GrantOrContributionPdDurYrGrp")
+
+            rows=[]
+            for recipient in grants_list:
+                recipient_EIN_check=recipient.find('./{http://www.irs.gov/efile}RecipientEIN')
+                recipient_EIN = recipient_EIN_check.text if ET.iselement(recipient_EIN_check)==True else ''
+
+                business_name_check = recipient.find('./*/{http://www.irs.gov/efile}BusinessNameLine1Txt')
+                business_name = business_name_check.text if ET.iselement(business_name_check)==True else ''
+
+                address_element_check = recipient.find('.*/{http://www.irs.gov/efile}AddressLine1Txt')
+                address_element_line1 = address_element_check.text if ET.iselement(address_element_check)==True else ''
+
+                address_element_line2_check=recipient.find('.*/{http://www.irs.gov/efile}AddressLine2Txt')
+                address_element_line2=address_element_line2_check.text if ET.iselement(address_element_line2_check)==True else ''
+
+                address_element_city_check=recipient.find('.*/{http://www.irs.gov/efile}CityNm')
+                address_element_city = address_element_city_check.text if ET.iselement(address_element_city_check)== True else ''
+
+                address_element_state_check=recipient.find('.*/{http://www.irs.gov/efile}StateAbbreviationCd')
+                address_element_state = address_element_state_check.text if ET.iselement(address_element_state_check)==True else ''
+
+                address_element_zip_check = recipient.find('.*/{http://www.irs.gov/efile}ZIPCd')
+                address_element_zip = address_element_zip_check.text if ET.iselement(address_element_zip_check)==True else ''
+
+
+                amount_element_check = recipient.find('./{http://www.irs.gov/efile}Amt')
+                amount_element = amount_element_check.text if ET.iselement(amount_element_check)==True else ''
+
+                status_element_check =recipient.find('./{http://www.irs.gov/efile}Status')
+                status_element=status_element_check.text if ET.iselement(status_element_check)==True else ''
+
+                purpose_element_check=recipient.find('./{http://www.irs.gov/efile}GrantOrContributionPurposeTxt')
+                purpose_element= purpose_element_check.text if ET.iselement(purpose_element_check)==True else ''
+
+                address=address_element_line1+' '+address_element_line2+' '+address_element_city+' '+address_element_state+' '+address_element_zip
+
+                rows.append([GrantorEIN,OrganizationName,recipient_EIN,business_name,address,amount_element,status_element,purpose_element])
+
+            df = pd.DataFrame(rows, columns=["grantor_EIN","grantor_name","EIN", "orgnizaiton","address","status","amount","purpose"])
+            df.to_csv(Filings_folder+'/'+GrantorEIN+'_'+OrganizationName+'.csv')
+
+           
+        else:
+            print(str(OrganizationName)+' has not provided any grants')
+            #break
+
+
+end_time=time.time()
+print('Search is complete search took '+str(end_time-start_time)+' seconds.')
