@@ -1,0 +1,5 @@
+.venv/bin/pip
+xml_sampling.py
+.venv/
+.venv/*
+.venv/pyvenv.cfg
