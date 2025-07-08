@@ -15,11 +15,13 @@ import uuid
 import logging
 import multiprocessing 
 from folder_check import folder_check
+import datetime
 
 
 
 
 def main(file_download_directory=None, xml_unzip_directory=None):
+    start=datetime.datetime.now()
     today=datetime.date.today()
     #Folder Creation
     folder_check(file_download_directory)
@@ -55,10 +57,13 @@ def main(file_download_directory=None, xml_unzip_directory=None):
     logging.info("=== Run started ===")
 
     try:
+        # Initialize TPC_990 logger first
+        TPC_990.logger = TPC_990.setup_logging(file_location)
+        
         logging.info(f"Downloading ZIP files to {file_location}")
         TPC_990.download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
         logging.info("Extracting and moving XML files")
-        TPC_990.extract_and_move_xml_files(file_location, xml_location)
+        TPC_990.extract_and_move_xml_files(file_location, xml_location, file_location)
 
         logging.info(f"Processing BoardMembers and saving to {target_location}")
         TPC_990_Boardmembers.irs_boardmember(xml_location, target_location)
@@ -101,6 +106,9 @@ def main(file_download_directory=None, xml_unzip_directory=None):
     subdirectory_concat_gpt.process_folder((target_location, 'grants_'))
     subdirectory_concat_gpt.folder_csv_concat(target_location, 'boardmembers_', num_processes=4)
     subdirectory_concat_gpt.process_folder((target_location, 'boardmembers_'))
+    endtime=datetime.datetime.now()
+    elapsed_time = endtime - start
+    print(f"Total processing time: {elapsed_time}")
 
 
 # Press the green button in the gutter to run the script.

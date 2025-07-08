@@ -126,13 +126,16 @@ def download_zip_files(url, file_location):
         logger.error(f"Unexpected error occurred while fetching ZIP links from {url}: {e}")
         print(f"An error occurred while fetching ZIP links: {e}")
 
-def extract_zip(zip_file, unzip_location):
-    logger.info(f"Starting extraction of ZIP file: {zip_file}")
-    logger.info(f"Extraction destination: {unzip_location}")
+def extract_zip(zip_file, unzip_location, extract_logger=None):
+    if extract_logger is None:
+        extract_logger = logger
+
+    extract_logger.info(f"Starting extraction of ZIP file: {zip_file}")
+    extract_logger.info(f"Extraction destination: {unzip_location}")
     try:
         # Check if the ZIP file exists
         if not os.path.exists(zip_file):
-            logger.error(f"ZIP file does not exist: {zip_file}")
+            extract_logger.error(f"ZIP file does not exist: {zip_file}")
             print(f"Error: '{zip_file}' does not exist.")
             return False
 
@@ -213,16 +216,16 @@ def extract_and_move_xml_files_worker(zip_file, file_location, xml_location, bas
             # Extract the ZIP file to the subfolder
             if PATOOLIB_AVAILABLE:
                 try:
-                    if extract_zip(zip_file, unzip_location):
+                    if extract_zip(zip_file, unzip_location, worker_logger):
                         worker_logger.info(f"Using patoolib for additional extraction: {zip_file}")
                         patoolib.extract_archive(zip_file, outdir=unzip_location)
                 except NotImplementedError:
                     worker_logger.warning(f"patoolib is not implemented. Falling back to zipfile for '{zip_file}'.")
                     print(f"patoolib is not implemented. Falling back to zipfile for '{zip_file}'.")
-                    extract_zip(zip_file, unzip_location)
+                    extract_zip(zip_file, unzip_location,worker_logger)
             else:
                 worker_logger.info(f"Using standard extraction method for: {zip_file}")
-                extract_zip(zip_file, unzip_location)
+                extract_zip(zip_file, unzip_location,worker_logger)
 
             # After extraction, find XML files recursively in all subdirectories
             xml_files = glob.glob(os.path.join(unzip_location, '**', '*.xml'), recursive=True)
@@ -285,8 +288,9 @@ def extract_and_move_xml_files(file_location, xml_location, base_path=None):
 
 
 if __name__ == "__main__":
+    """
     file_location = '/Volumes/TPC/2025-07-07/downloads/2021_TEOS_XML_01A.zip'  # Directory containing ZIP files
-    xml_location = '/Volumes/TPC/2025-07-07/xml_files'  # Directory to store extracted XML files
+    xml_location = '/Volumes/TPC/2025-07-07/xml'  # Directory to store extracted XML files
     
     # Initialize logger with the file location for proper log directory
     logger = setup_logging(file_location)
@@ -304,5 +308,6 @@ if __name__ == "__main__":
     extract_and_move_xml_files(file_location, xml_location, file_location)
     
     logger.info("TPC 990 processing script completed successfully")
+    """
 
 
