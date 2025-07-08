@@ -265,12 +265,13 @@ def irs_expense_income(file_location,target_location):
 
 
     # Write mydict to a JSON file
-    with open('/Users/michaellingram/Downloads/profiles.json', 'w') as f:
+    with open(f"{target_location}/incomeexpense_profiles.json", 'w') as f:
         json.dump(profile_empty_dict, f)
-    with open('/Users/michaellingram/Downloads/income_expense.json', 'w') as f:
+    with open(f"{target_location}/income_expense.json", 'w') as f:
         json.dump(income_expense_empty_dict, f)
 
 if __name__ == "__main__":
-    file_location = '/Volumes/TPC/xml'
-    target_location = '/Users/michaellingram/Downloads'
-    irs_expense_income(file_location, target_location)
+    pass
+# file_location = '/Volumes/TPC/xml'
+# target_location = '/Users/michaellingram/Downloads'
+# irs_expense_income(file_location, target_location)

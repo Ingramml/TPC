@@ -27,10 +27,12 @@ def process_single_file(file_path, target_location):
                 for file in files_in_dir:
                     if file.endswith('.xml'):
                         files.append(os.path.join(root, file))
+            working_dir = os.path.dirname(file_path)
         else:
             # If file_path is not a directory, assume it's a single file
             if file_path.endswith('.xml'):
                 files.append(file_path)
+                working_dir = os.path.dirname(file_path)
 
         grants_empty_dict={}
 
@@ -52,7 +54,7 @@ def process_single_file(file_path, target_location):
                 else:
                     os.makedirs(folder, exist_ok=True)
             else:
-                os.rename(i, '/Volumes/Storage/TPC990/Errors/' + os.path.basename(i))
+                os.rename(i, os.path.dirname(target_location) + os.path.basename(i))
 
             GrantorEIN = GrantorEIN_check.text
             # filenames
@@ -196,7 +198,7 @@ def process_single_file(file_path, target_location):
             grants_empty_dict = {str(k): v for k, v in grants_empty_dict.items()}
 
 
-            with open('/Users/michaellingram/Downloads/profiles.json', 'w') as f:
+            with open(f"{os.path.dirname(target_location)}/grant_profiles.json", 'w') as f:
                 json.dump(grants_empty_dict, f)
 
 
@@ -259,5 +261,5 @@ def irs_grants(file_location, target_location):
 
 # Add the if __name__ guard to ensure the code runs only in the main process
 if __name__ == '__main__':
-    irs_grants('/Volumes/TPC/xml', '/Users/michaellingram/Downloads/TPC')
+    irs_grants('/Volumes/SSD/TPC/xml', '/Volumes/SSD/TPC/csv')
     #process_single_file('/Users/michaellingram/Downloads/xmlsamples/202341739349301804_public.xml','/Users/michaellingram/Downloads')

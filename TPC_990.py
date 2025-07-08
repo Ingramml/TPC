@@ -36,11 +36,18 @@ def download_zip_files(url, file_location):
 
         os.makedirs(file_location, exist_ok=True)
 
-        tables = soup.findAll(class_="link-label label-file label-file-zip")
+        # Use find_all instead of findAll
+        tables = soup.find_all(class_="link-label label-file label-file-zip")
 
         for link in tables:
-            link_url = link.parent.contents[0].get('href')
-            download_file(link_url, file_location)
+            # Check if the parent has an 'href' attribute
+            parent = link.parent
+            if parent and parent.has_attr('href'):
+                link_url = parent['href']
+                if not link_url.startswith('http'):
+                    # Handle relative URLs
+                    link_url = requests.compat.urljoin(url, link_url)
+                download_file(link_url, file_location)
     except Exception as e:
         print(f"An error occurred while fetching ZIP links: {e}")
 
@@ -191,8 +198,15 @@ def extract_and_move_xml_files(file_location, xml_location):
 
 
 if __name__ == "__main__":
-    file_location = '/Volumes/TPC/downloads'
-    xml_location = '/Volumes/TPC/xml'
-
+    file_location = '/Volumes/SSD/TPC/downloads'
+    xml_location = '/Volumes/SSD/TPC/xml'
     #download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
     extract_and_move_xml_files(file_location, xml_location)
+
+
+"""
+file_location = '/Volumes/SSD/TPC/downloads'
+xml_location = '/Volumes/SSD/TPC/xml'
+download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
+extract_and_move_xml_files(file_location, xml_location)
+"""

@@ -1,11 +1,15 @@
 import requests
 import os
 from bs4 import BeautifulSoup
+import pandas as pd
 
 def download_xml_for_eins(eins, target_location):
-    # Ensure that eins is a list
-    if not isinstance(eins, list):
+    
+    if isinstance(eins, pd.Series):
+        eins = eins.tolist()
+    elif not isinstance(eins, list):
         eins = [eins]
+  
 
     # Ensure the target directory exists
     os.makedirs(target_location, exist_ok=True)
@@ -45,6 +49,7 @@ def download_xml_for_eins(eins, target_location):
 
 # Example usage
 if __name__ == "__main__":
-    ein_list = ['910639892','560552787','223849199','042674079','616038389','680480736','750758523','952942582','952504044','952145967','812350619','510571147','341747398','311774905','311640316','232888152','110303001','591956886']
-    target_location = '/Volumes/flashdrive/xmldownloads'
-    download_xml_for_eins(ein_list, target_location)
+    df = pd.read_csv('/Users/michaelingram/Downloads/index_2025.csv')
+    eins= df['EIN'].tolist()
+    target_location = '/Volumes/SSD/TPC/xml'
+    download_xml_for_eins(eins, target_location)

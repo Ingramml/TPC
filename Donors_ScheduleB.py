@@ -5,7 +5,7 @@ from tqdm import tqdm
 import os
 import json
 
-e
+
 # files = glob.glob('/Volumes/SSD/TPC990/TPC_xml/*.xml')
 # target_location = '/Volumes/SSD/production'
 

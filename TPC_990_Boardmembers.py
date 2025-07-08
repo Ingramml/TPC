@@ -140,9 +140,15 @@ def irs_boardmember(file_location, target_location):
     mydict = {str(k): v for k, v in mydict.items()}
 
     # Write mydict to a JSON file
-    with open('/Users/michaellingram/Downloads/Boardmembers.json', 'w') as f:
+    with open(f"{target_location}/Boardmembers.json", 'w') as f:
         json.dump(mydict, f)
 
 
-#if __name__ == '__main__':
-    #irs_boardmember('/Volumes/flashdrive/xmldownloads','/Volumes/flashdrive/TPC')
+if __name__ == '__main__':
+    # Example usage
+    file_location = '/Volumes/SSD/TPC/xml'
+    target_location = '/Volumes/SSD/TPC/csv'
+    #irs_boardmember('/Volumes/SSD/TPC/xml','/Volumes/SSD/TPC/csv')
+
+
+#irs_boardmember('/Volumes/SSD/TPC/xml','/Volumes/SSD/TPC/csv')

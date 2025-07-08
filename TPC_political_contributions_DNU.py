@@ -108,5 +108,4 @@ def political_contributions(file_path, target_location):
 if __name__ == "__main__":
     file_location = ('/Users/michaellingram/Downloads/xmlsamples/202341739349301804_public.xml')
     target_location = '/Users/michaellingram/Downloads/TPC'
-
-political_contributions(file_location, target_location)
+    political_contributions(file_location, target_location)
