@@ -271,7 +271,7 @@ def irs_expense_income(file_location,target_location):
         json.dump(income_expense_empty_dict, f)
 
 if __name__ == "__main__":
-    pass
-# file_location = '/Volumes/TPC/xml'
-# target_location = '/Users/michaellingram/Downloads'
-# irs_expense_income(file_location, target_location)
+    #pass
+    file_location = '/Volumes/TPC/2025-07-08/xml'
+    target_location = '/Volumes/TPC/2025-07-08/csv'
+    irs_expense_income(file_location, target_location)

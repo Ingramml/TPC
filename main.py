@@ -62,6 +62,7 @@ def main(file_download_directory=None, xml_unzip_directory=None):
         
         logging.info(f"Downloading ZIP files to {file_location}")
         TPC_990.download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
+        
         logging.info("Extracting and moving XML files")
         TPC_990.extract_and_move_xml_files(file_location, xml_location, file_location)
 
@@ -80,12 +81,14 @@ def main(file_download_directory=None, xml_unzip_directory=None):
             logging.info(f"Processing folder for prefix '{prefix}'")
             subdirectory_concat_gpt.process_folder((target_location, prefix))
 
+        endtime = datetime.datetime.now()
+        elapsed_time = endtime - start
+        logging.info(f"Total processing time: {elapsed_time}")
         logging.info("=== Run completed successfully ===")
+        
     except Exception as e:
         logging.exception(f"An error occurred during processing: {e}")
-   
-   
-    
+        logging.info("=== Run failed ===")
 
     TPC_990.download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
     TPC_990.extract_and_move_xml_files(file_location, xml_location)

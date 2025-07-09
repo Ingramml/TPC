@@ -5,3 +5,10 @@ xml_sampling.py
 .venv/pyvenv.cfg
 *.log
 *.zip
+*.DS_Store
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.DS_Store
+task.json

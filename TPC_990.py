@@ -53,7 +53,7 @@ def setup_logging(base_path=None):
     
     logger = logging.getLogger(__name__)
     logger.info(f"Logging initialized. Log file: {log_filename}")
-    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Working directory: {base_path}")
     return logger
 
 # Initialize logger (will be updated in main with proper path)
@@ -132,6 +132,7 @@ def extract_zip(zip_file, unzip_location, extract_logger=None):
 
     extract_logger.info(f"Starting extraction of ZIP file: {zip_file}")
     extract_logger.info(f"Extraction destination: {unzip_location}")
+    
     try:
         # Check if the ZIP file exists
         if not os.path.exists(zip_file):
@@ -139,97 +140,82 @@ def extract_zip(zip_file, unzip_location, extract_logger=None):
             print(f"Error: '{zip_file}' does not exist.")
             return False
 
-        # Check if the destination directory already exists
-        if os.path.exists(unzip_location):
-            logger.info(f"Directory already exists, skipping extraction: {unzip_location}")
-            print(f"Files from '{zip_file}' have already been unzipped.")
-        else:
-            logger.info(f"Creating directory and extracting files: {unzip_location}")
-            os.makedirs(unzip_location, exist_ok=True)
+        # Create destination directory
+        os.makedirs(unzip_location, exist_ok=True)
+        
+        # Try standard zipfile first
+        try:
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
                 zip_ref.extractall(unzip_location)
-                logger.info(f"Successfully extracted {zip_file} to {unzip_location}")
-                print(f"Files from '{zip_file}' unzipped successfully to {unzip_location} .")
+                extract_logger.info(f"Successfully extracted {zip_file} using zipfile")
+                print(f"Files from '{zip_file}' unzipped successfully to {unzip_location}")
+                return True
+        except zipfile.BadZipFile:
+            extract_logger.warning(f"Standard zipfile failed for {zip_file}, trying alternative methods")
+        except Exception as e:
+            extract_logger.warning(f"Standard zipfile failed for {zip_file}: {e}, trying alternative methods")
 
-        return True
-
-    except zipfile.BadZipFile as e:
-        logger.error(f"Invalid ZIP file: {zip_file} - {e}")
-        print(f"Error: '{zip_file}' is not a valid ZIP file.")
-    except zipfile.LargeZipFile as e:
-        logger.error(f"ZIP file too large: {zip_file} - {e}")
-        print(f"Error: '{zip_file}' is too large to be unzipped.")
-    except Exception as e:
-        logger.error(f"Error during ZIP extraction: {zip_file} - {e}")
-        print(f"An error occurred while processing '{zip_file}': {e}")
-
-        # Indicate that shutil.unpack_archive is being tried
-        logger.info(f"Attempting alternative extraction method with shutil for: {zip_file}")
-        print(f"Attempting to extract using shutil.unpack_archive")
-
+        # Try shutil.unpack_archive as fallback
         try:
             shutil.unpack_archive(zip_file, unzip_location)
-            logger.info(f"Successfully extracted {zip_file} using shutil.unpack_archive")
-            print(f"Files from '{zip_file}' extracted successfully to {unzip_location}.")
-        except shutil.ReadError as e:
-            logger.error(f"shutil.unpack_archive failed for {zip_file}: {e}")
-            print(f"An error occurred while extracting '{zip_file}' with shutil.unpack_archive: {e}")
+            extract_logger.info(f"Successfully extracted {zip_file} using shutil.unpack_archive")
+            print(f"Files from '{zip_file}' extracted successfully using shutil")
+            return True
         except Exception as e:
-            logger.error(f"Unexpected error during shutil extraction of {zip_file}: {e}")
-            print(f"An unexpected error occurred during extraction: {e} Shulti cannot exract {zip_file}")
+            extract_logger.warning(f"shutil.unpack_archive failed for {zip_file}: {e}")
 
-        # Attempt to remove the directory if it was created
-        if os.path.exists(unzip_location):
+        # Try patoolib if available
+        if PATOOLIB_AVAILABLE:
             try:
-                os.rmdir(unzip_location)
-                logger.info(f"Cleaned up directory after failed extraction: {unzip_location}")
-                print(f"Removed directory '{unzip_location}'")
+                patoolib.extract_archive(zip_file, outdir=unzip_location)
+                extract_logger.info(f"Successfully extracted {zip_file} using patoolib")
+                print(f"Files from '{zip_file}' extracted successfully using patoolib")
+                return True
             except Exception as e:
-                logger.error(f"Failed to clean up directory {unzip_location}: {e}")
-                print(f"Failed to remove directory '{unzip_location}': {e}")
+                extract_logger.warning(f"patoolib failed for {zip_file}: {e}")
 
-    return False
-   
-    #Add Shulti to try and unzip files that were unzipped by unzip package
+        # If all methods fail
+        extract_logger.error(f"All extraction methods failed for {zip_file}")
+        print(f"Error: Could not extract '{zip_file}' using any available method")
+        return False
+
+    except Exception as e:
+        extract_logger.error(f"Unexpected error during extraction of {zip_file}: {e}")
+        print(f"Unexpected error occurred during extraction: {e}")
+        return False
 
 def extract_and_move_xml_files_worker(zip_file, file_location, xml_location, base_path=None):
     # Function to handle the extraction and moving of XML files in a separate process
     # Initialize logger for this worker process
-    worker_logger = setup_logging(base_path)
+    worker_logger = setup_logging(file_location)
     worker_logger.info(f"Worker process starting for ZIP file: {zip_file}")
     files_moved = 0
     files_already_exist = 0
+    
     try:
         # Create subfolder named after the ZIP file (without .zip extension)
         zip_basename = os.path.splitext(os.path.basename(zip_file))[0]
         unzip_location = os.path.join(file_location, zip_basename)
         worker_logger.info(f"Extraction will go to subfolder: {unzip_location}")
         
-        # Check if the extraction folder already exists
+        # Check if we need to extract (look for existing XML files)
+        existing_xml_files = []
         if os.path.exists(unzip_location):
-            worker_logger.info(f"Extraction folder already exists: {unzip_location}")
-            # Check for XML files in the existing folder and all subdirectories
-            xml_files = glob.glob(os.path.join(unzip_location, '**', '*.xml'), recursive=True)
-            worker_logger.info(f"Found {len(xml_files)} XML files in existing folder (searching recursively)")
+            existing_xml_files = glob.glob(os.path.join(unzip_location, '**', '*.xml'), recursive=True)
+            worker_logger.info(f"Found {len(existing_xml_files)} existing XML files in {unzip_location}")
+        
+        # Extract if no XML files found or directory doesn't exist
+        if not existing_xml_files:
+            worker_logger.info(f"Extracting ZIP file: {zip_file}")
+            if not extract_zip(zip_file, unzip_location, worker_logger):
+                worker_logger.error(f"Failed to extract {zip_file}")
+                return 0, 0
         else:
-            worker_logger.info(f"Extraction folder does not exist, extracting ZIP: {zip_file}")
-            # Extract the ZIP file to the subfolder
-            if PATOOLIB_AVAILABLE:
-                try:
-                    if extract_zip(zip_file, unzip_location, worker_logger):
-                        worker_logger.info(f"Using patoolib for additional extraction: {zip_file}")
-                        patoolib.extract_archive(zip_file, outdir=unzip_location)
-                except NotImplementedError:
-                    worker_logger.warning(f"patoolib is not implemented. Falling back to zipfile for '{zip_file}'.")
-                    print(f"patoolib is not implemented. Falling back to zipfile for '{zip_file}'.")
-                    extract_zip(zip_file, unzip_location,worker_logger)
-            else:
-                worker_logger.info(f"Using standard extraction method for: {zip_file}")
-                extract_zip(zip_file, unzip_location,worker_logger)
+            worker_logger.info(f"Skipping extraction - XML files already exist in {unzip_location}")
 
-            # After extraction, find XML files recursively in all subdirectories
-            xml_files = glob.glob(os.path.join(unzip_location, '**', '*.xml'), recursive=True)
-            worker_logger.info(f"Found {len(xml_files)} XML files after extraction (searching recursively)")
+        # Find all XML files after extraction
+        xml_files = glob.glob(os.path.join(unzip_location, '**', '*.xml'), recursive=True)
+        worker_logger.info(f"Found {len(xml_files)} XML files to process")
         
         # Process and move XML files to the final destination
         for xml_file in xml_files:
@@ -295,6 +281,19 @@ if __name__ == "__main__":
     # Initialize logger with the file location for proper log directory
     logger = setup_logging(file_location)
     
+    logger.info("Starting TPC 990 processing script")
+    logger.info(f"Configuration - Download location: {file_location}")
+    logger.info(f"Configuration - XML location: {xml_location}")
+    
+    # Download ZIP files (commented out)
+    #logger.info("Starting ZIP file download process")
+    #download_zip_files('https://www.irs.gov/charities-non-profits/form-990-series-downloads', file_location)
+    
+    # Extract and move XML files
+    logger.info("Starting extraction and movement of XML files")
+    extract_and_move_xml_files(file_location, xml_location, file_location)
+    
+    logger.info("TPC 990 processing script completed successfully")
     logger.info("Starting TPC 990 processing script")
     logger.info(f"Configuration - Download location: {file_location}")
     logger.info(f"Configuration - XML location: {xml_location}")
