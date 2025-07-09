@@ -16,6 +16,7 @@ import logging
 import multiprocessing 
 from folder_check import folder_check
 import datetime
+import income_expense_fixed
 
 
 
@@ -39,6 +40,9 @@ def main(file_download_directory=None, xml_unzip_directory=None):
     # Create target directory for CSV files
     target_location = os.path.join(xml_unzip_directory, today.strftime("%Y-%m-%d"), 'csv')
     folder_check(target_location)
+    
+    error_location = os.path.join(xml_unzip_directory, today.strftime("%Y-%m-%d"), 'errors')
+    folder_check(error_location)
 
     # Generate a unique run ID using timestamp and UUID
     run_id = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
@@ -70,7 +74,8 @@ def main(file_download_directory=None, xml_unzip_directory=None):
         TPC_990_Boardmembers.irs_boardmember(xml_location, target_location)
 
         logging.info(f"Processing Income and Expenses and saving to {target_location}")
-        income_expense.irs_expense_income(xml_location, target_location)
+        #income_expense.irs_expense_income(xml_location, target_location)
+        income_expense_fixed.irs_expense_income_fixed(xml_location, target_location)
 
         logging.info(f"Processing Grants and saving to {target_location}")
         TPC_grants.irs_grants(xml_location, target_location)

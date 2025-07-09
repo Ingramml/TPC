@@ -261,5 +261,7 @@ def irs_grants(file_location, target_location):
 
 # Add the if __name__ guard to ensure the code runs only in the main process
 if __name__ == '__main__':
-    irs_grants('/Volumes/SSD/TPC/xml', '/Volumes/SSD/TPC/csv')
+    file_location = '/Volumes/TPC/2025-07-08/xml'
+    target_location = '/Volumes/TPC/2025-07-08/csv'
+    irs_grants(file_location, target_location)
     #process_single_file('/Users/michaellingram/Downloads/xmlsamples/202341739349301804_public.xml','/Users/michaellingram/Downloads')
