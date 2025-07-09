@@ -17,10 +17,11 @@ def political_contributions(file_path, target_location):
 
     for i in tqdm(files):
         rows = []
+        filename = os.path.basename(i)
+        
         try:
             tree = ET.parse(i)
             root = tree.getroot()
-            filename = os.path.basename(i)
             donations = root[1].findall('.//{http://www.irs.gov/efile}Section527PoliticalOrgGrp')
 
             GrantorEIN_check = root[0].find('.//{http://www.irs.gov/efile}EIN').text
