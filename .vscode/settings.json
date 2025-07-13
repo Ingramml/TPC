@@ -1,0 +1,20 @@
+{
+    // Terminal settings for audio feedback
+    "terminal.integrated.enableBell": true,
+    "terminal.integrated.bellDuration": 1000,
+    
+    // Task completion notifications
+    "task.problemMatchers.showOutput": "always",
+    "task.slowProviderWarning": false,
+    
+    // Python-specific settings
+    "python.terminal.executeInFileDir": true,
+    "python.terminal.launchArgs": [],
+    
+    // Editor settings for better development experience
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    
+    // Extensions that can help with notifications
+    "extensions.ignoreRecommendations": false
+}

@@ -4,9 +4,54 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "echo",
+            "label": "Run TPC Pipeline",
             "type": "shell",
-            "command": "echo Hello"
+            "command": "python",
+            "args": ["main.py"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "runOptions": {
+                "instanceLimit": 1
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Fast Cleanup",
+            "type": "shell",
+            "command": "python",
+            "args": ["fast_cleanup.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Grants Processing",
+            "type": "shell",
+            "command": "python",
+            "args": ["TPC_grants2.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
         }
     ]
 }
