@@ -18,10 +18,21 @@ from folder_check import folder_check
 import datetime
 import income_expense_fixed
 
+#TODO
+# - Add error handling for folder creation
+# - Add error handling for file operations
+# - General Error or General error needs to be forced Null and traced by to each file
 
 
 
 def main(file_download_directory=None, xml_unzip_directory=None):
+    
+    if file_download_directory is None:
+        raise ValueError("file_download_directory cannot be None")
+    if xml_unzip_directory is None:
+        raise ValueError("xml_unzip_directory cannot be None")
+
+    
     start=datetime.datetime.now()
     today=datetime.date.today()
     #Folder Creation

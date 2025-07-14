@@ -12,7 +12,7 @@ from logging_setup import get_standard_logger
 from error_handler import move_error_file, setup_error_logging
 
 
-def safe_find_element(root, xpath: str, alternative_xpath: str = None) -> Optional[ET.Element]:
+def safe_find_element(root, xpath: str, alternative_xpath: Optional[str] = None) -> Optional[ET.Element]:
     """
     Safely find an element with fallback options.
     
@@ -81,7 +81,7 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
             error_reason = "No EIN found in XML file"
             logger.warning(f"{error_reason}: {os.path.basename(file_path)}")
             move_error_file(file_path, error_reason=error_reason, logger=logger)
-            return None, None
+            return {}, {}
 
         GrantorEIN = GrantorEIN_check.text
 
@@ -98,7 +98,7 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
             error_reason = "No Filer element found in XML"
             logger.warning(f"{error_reason}: {os.path.basename(file_path)}")
             move_error_file(file_path, error_reason=error_reason, logger=logger)
-            return None, None
+            return {}, {}
 
         # Business name checks with safe element finding
         businessname_check_ln1 = safe_find_element(
@@ -334,12 +334,12 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
         error_reason = f"XML parsing failed: {str(e)}"
         logger.error(f"{error_reason}: {os.path.basename(file_path)}")
         move_error_file(file_path, error_reason=error_reason, logger=logger)
-        return None, None
+        return {}, {}
     except Exception as e:
         error_reason = f"Unexpected error during processing: {str(e)}"
         logger.error(f"{error_reason}: {os.path.basename(file_path)}")
         move_error_file(file_path, error_reason=error_reason, logger=logger)
-        return None, None
+        return {}, {}
 
 
 def irs_expense_income(file_location: str, target_location: str) -> None:

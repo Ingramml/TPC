@@ -46,7 +46,7 @@ def setup_logging(base_path=None, module_name="tpc", level=logging.INFO, console
     log_filename = os.path.join(log_dir, f'tpc_{module_name}_{timestamp}.log')
     
     # Create handlers list
-    handlers = [logging.FileHandler(log_filename)]
+    handlers: list[logging.Handler] = [logging.FileHandler(log_filename)]
     
     # Add console handler if requested
     if console_output:
