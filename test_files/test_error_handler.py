@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from logging_setup import get_standard_logger
 from error_handler import move_error_file, move_multiple_error_files, create_error_report
-from income_expense_fixed import process_single_file as process_income_expense
-from TPC_grants2 import process_single_file as process_grants
+from income_expense import process_single_file as process_income_expense
+from TPC_grants import process_single_file as process_grants
 
 
 def setup_test_environment():

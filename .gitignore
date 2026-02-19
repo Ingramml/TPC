@@ -8,6 +8,7 @@ xml_sampling.py
 *.DS_Store
 *.pyc
 __pycache__/
+archive/
 *.pyo
 *.pyd
 .DS_Store
