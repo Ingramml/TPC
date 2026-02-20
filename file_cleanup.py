@@ -152,21 +152,18 @@ def empty_trash(logger: Optional[logging.Logger] = None) -> bool:
         
         if system == "Darwin":  # macOS
             logger.info("Emptying macOS Trash...")
-            # Use AppleScript to empty trash
-            script = '''
-            tell application "Finder"
-                empty trash
-            end tell
-            '''
-            result = subprocess.run(['osascript', '-e', script], 
-                                  capture_output=True, text=True, timeout=60)
-            
-            if result.returncode == 0:
-                logger.info("Successfully emptied macOS Trash")
-                return True
+            # Directly delete ~/.Trash contents (no Automation permission needed)
+            trash_path = os.path.expanduser("~/.Trash")
+            if os.path.exists(trash_path):
+                success = delete_all_files_in_folder(trash_path, logger)
+                if success:
+                    logger.info("Successfully emptied macOS Trash")
+                else:
+                    logger.error("Failed to completely empty macOS Trash")
+                return success
             else:
-                logger.error(f"Failed to empty macOS Trash: {result.stderr}")
-                return False
+                logger.info("macOS Trash folder not found")
+                return True
                 
         elif system == "Windows":  # Windows
             logger.info("Emptying Windows Recycle Bin...")

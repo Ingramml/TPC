@@ -25,7 +25,7 @@ def irs_boardmember(file_location, target_location):
     mydict = {}
 
     for i in tqdm(file_location):
-        logger.info(f'Processing file: {i}')
+        logger.debug(f'Processing file: {i}')
         
         try:
             tree = ET.parse(i)

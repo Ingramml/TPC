@@ -8,7 +8,6 @@ import json
 import logging
 import shutil
 from datetime import datetime
-import fcntl  # For file locking
 
 # Import custom modules
 from logging_setup import get_standard_logger
@@ -114,19 +113,18 @@ def safe_json_save(data: dict, file_path: str, logger: logging.Logger) -> bool:
         return False
 
 
-def process_single_file(file_path: str, target_location: str, logger: logging.Logger) -> str:
+def process_single_file(file_path: str, target_location: str, logger: logging.Logger) -> tuple:
     """
     Process a single XML file to extract grant data.
-    
+
     Args:
         file_path: Path to the XML file
         target_location: Directory to save output files
         logger: Logger instance
-        
+
     Returns:
-        String indicating processing result
+        tuple: (result_string, grants_dict_or_None)
     """
-    today= datetime.now().strftime('%Y-%m-%d')
     try:
         tree = ET.parse(file_path)
         root = tree.getroot()
@@ -146,7 +144,7 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
             error_reason = "No EIN found in XML file"
             logger.warning(f"{error_reason}: {os.path.basename(file_path)}")
             move_error_file(file_path, error_reason=error_reason, logger=logger)
-            return f"Error: {error_reason} - {file_path}"
+            return (f"Error: {error_reason} - {file_path}", None)
 
         GrantorEIN = GrantorEIN_check.text
 
@@ -158,13 +156,13 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
             error_reason = "No valid year found in XML file"
             logger.warning(f"{error_reason}: {os.path.basename(file_path)}")
             move_error_file(file_path, error_reason=error_reason, logger=logger)
-            return f"Error: {error_reason} - {file_path}"
+            return (f"Error: {error_reason} - {file_path}", None)
 
         # Check if file already processed
         filecheck = os.path.join(target_location, year, f'grants_{GrantorEIN}.csv')
         if os.path.isfile(filecheck):
-            logger.info(f"File already processed, skipping: {os.path.basename(file_path)}")
-            return f"Already processed {file_path}"
+            logger.debug(f"File already processed, skipping: {os.path.basename(file_path)}")
+            return (f"Already processed {file_path}", None)
 
         grants_empty_dict = {}
 
@@ -330,71 +328,23 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
                 grants_empty_dict[file_path] = grants_dict
 
         else:
-            logger.info(f"No grant data found in file: {os.path.basename(file_path)}")
-            return f"No grant data found in {file_path}"
+            logger.debug(f"No grant data found in file: {os.path.basename(file_path)}")
+            return (f"No grant data found in {file_path}", None)
 
-        # Save grants dictionary with improved JSON handling
-        if grants_empty_dict:
-            grants_json_path = os.path.join(target_location, "grant_profiles_3.json")
-            
-            # Log the JSON file path for debugging
-            logger.info(f"JSON file path determined: {grants_json_path}")
-            logger.info(f"Target location: {target_location}")
-            logger.info(f"Parent directory: {os.path.dirname(target_location)}")
-            logger.info(f"JSON directory exists: {os.path.exists(os.path.dirname(grants_json_path))}")
-
-            # Use file locking to prevent concurrent access during multiprocessing
-            lock_path = f"{grants_json_path}.lock"
-            
-            try:
-                # Create lock file
-                with open(lock_path, 'w') as lock_file:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                    
-                    # Load existing data safely
-                    existing_data = safe_json_load(grants_json_path, logger)
-                    logger.info(f"Loaded existing JSON data: {len(existing_data)} entries")
-                    
-                    # Convert file path keys to strings
-                    grants_empty_dict = {str(k): v for k, v in grants_empty_dict.items()}
-                    
-                    # Update with new data
-                    existing_data.update(grants_empty_dict)
-                    logger.info(f"Updated JSON data: {len(existing_data)} total entries")
-                    
-                    # Save updated data safely
-                    if safe_json_save(existing_data, grants_json_path, logger):
-                        logger.info(f"Successfully saved grants JSON to: {grants_json_path}")
-                        logger.info(f"JSON file size: {os.path.getsize(grants_json_path) if os.path.exists(grants_json_path) else 'Unknown'} bytes")
-                    else:
-                        logger.error(f"Failed to save grants JSON for file: {os.path.basename(file_path)}")
-                    
-            except Exception as e:
-                logger.error(f"Error handling grants JSON: {str(e)}")
-            finally:
-                # Clean up lock file
-                try:
-                    if os.path.exists(lock_path):
-                        os.remove(lock_path)
-                        logger.debug(f"Cleaned up lock file: {lock_path}")
-                except:
-                    pass
-
-        logger.info(f"Successfully processed grants file: {os.path.basename(file_path)}")
-        print(grants_json_path)
-    
-        return f"Processed {file_path}"
+        logger.debug(f"Successfully processed grants file: {os.path.basename(file_path)}")
+        grant_data = {str(k): v for k, v in grants_empty_dict.items()} if grants_empty_dict else None
+        return (f"Processed {file_path}", grant_data)
 
     except ET.ParseError as e:
         error_reason = f"XML parsing failed: {str(e)}"
         logger.error(f"{error_reason}: {os.path.basename(file_path)}")
         move_error_file(file_path, error_reason=error_reason, logger=logger)
-        return f"XML Parse Error: {file_path}"
+        return (f"XML Parse Error: {file_path}", None)
     except Exception as e:
         error_reason = f"Unexpected error during processing: {str(e)}"
         logger.error(f"{error_reason}: {os.path.basename(file_path)}")
         move_error_file(file_path, error_reason=error_reason, logger=logger)
-        return f"Error processing {file_path}: {e}"
+        return (f"Error processing {file_path}: {e}", None)
 
 
 def process_file_helper(args):
@@ -456,11 +406,24 @@ def irs_grants(file_location: str, target_location: str) -> None:
         with Pool(processes=cpu_count()) as pool:
             results = list(tqdm(pool.imap(process_file_helper, args), total=len(files), desc="Processing grants"))
 
+        # Separate result strings and grant data
+        result_strings = [r[0] for r in results]
+        all_grant_data = {}
+        for r in results:
+            if r[1] is not None:
+                all_grant_data.update(r[1])
+
+        # Write grant profiles JSON once
+        if all_grant_data:
+            grants_json_path = os.path.join(target_location, "grant_profiles.json")
+            safe_json_save(all_grant_data, grants_json_path, logger)
+            logger.info(f"Saved {len(all_grant_data)} grant profiles to {grants_json_path}")
+
         # Log results summary
-        successful = sum(1 for result in results if result.startswith("Processed"))
-        errors = sum(1 for result in results if "Error" in result)
-        already_processed = sum(1 for result in results if "Already processed" in result)
-        no_data = sum(1 for result in results if "No grant data" in result)
+        successful = sum(1 for r in result_strings if r.startswith("Processed"))
+        errors = sum(1 for r in result_strings if "Error" in r)
+        already_processed = sum(1 for r in result_strings if "Already processed" in r)
+        no_data = sum(1 for r in result_strings if "No grant data" in r)
 
         logger.info(f"Grants processing completed:")
         logger.info(f"  Successful: {successful}")
@@ -469,45 +432,9 @@ def irs_grants(file_location: str, target_location: str) -> None:
         logger.info(f"  Errors: {errors}")
         logger.info(f"  Total files: {len(files)}")
 
-        # After processing, check JSON file status again
-        logger.info(f"=== POST-PROCESSING JSON CHECK ===")
-        final_json_path = os.path.join(target_location, "grant_profiles.json")
-        logger.info(f"Final JSON path check: {final_json_path}")
-        
-        if os.path.exists(final_json_path):
-            logger.info(f"✓ JSON file exists at: {final_json_path}")
-            logger.info(f"✓ JSON file size: {os.path.getsize(final_json_path)} bytes")
-            
-            # Try to read and log some info about the JSON content
-            try:
-                with open(final_json_path, 'r') as f:
-                    import json
-                    data = json.load(f)
-                    logger.info(f"✓ JSON file contains {len(data)} entries")
-            except Exception as e:
-                logger.warning(f"Could not read JSON file content: {str(e)}")
-        else:
-            logger.warning(f"✗ JSON file NOT FOUND at: {final_json_path}")
-            
-            # Check what files exist in the parent directory
-            parent_dir = os.path.dirname(target_location)
-            if os.path.exists(parent_dir):
-                all_files = os.listdir(parent_dir)
-                json_files = [f for f in all_files if f.endswith('.json')]
-                logger.info(f"Files in parent directory {parent_dir}: {all_files}")
-                if json_files:
-                    logger.info(f"JSON files found: {json_files}")
-                else:
-                    logger.info("No JSON files found in parent directory")
-            else:
-                logger.error(f"Parent directory does not exist: {parent_dir}")
-
-        # Print detailed results for debugging
-        for result in results:
-            if "Error" in result:
-                logger.warning(result)
-            else:
-                logger.debug(result)
+        for r in result_strings:
+            if "Error" in r:
+                logger.warning(r)
 
     except Exception as e:
         logger.error(f"Critical error during multiprocessing: {str(e)}")

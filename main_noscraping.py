@@ -8,20 +8,13 @@ import datetime
 import logging
 from folder_check import folder_check
 from logging_setup import setup_main_logging
-
-#TODO
-# - Add error handling for folder creation
-# - Add error handling for file operations
-# - General Error or General error needs to be forced Null and traced by to each file
-
+from download_from_index import download_all
 
 
 def main(file_download_directory=None):
 
     if file_download_directory is None:
         raise ValueError("file_download_directory cannot be None")
-
-    url = 'https://www.irs.gov/charities-non-profits/form-990-series-downloads'
 
     start=datetime.datetime.now()
     today=datetime.date.today()
@@ -51,11 +44,12 @@ def main(file_download_directory=None):
     logging.info("=== Run started ===")
 
     try:
+        # Download index CSVs for all years, then download all zip files
         download_start = datetime.datetime.now()
-        TPC_990.download_zip_files(url, file_location)
+        download_all(file_location)
         download_time = datetime.datetime.now() - download_start
-        logging.info(f"Download time (web scraping): {download_time}")
-        print(f"Download time (web scraping): {download_time}")
+        logging.info(f"Download time (index CSV): {download_time}")
+        print(f"Download time (index CSV): {download_time}")
 
         extract_start = datetime.datetime.now()
         TPC_990.extract_and_move_xml_files(file_location, xml_location)
@@ -100,7 +94,7 @@ def main(file_download_directory=None):
         print(f"\n{'='*50}")
         print(f"TIMING SUMMARY")
         print(f"{'='*50}")
-        print(f"  Download (web scrape): {download_time}")
+        print(f"  Download (index CSV):  {download_time}")
         print(f"  Extract & move XML:    {extract_time}")
         print(f"  BoardMembers:          {boardmember_time}")
         print(f"  Income/Expenses:       {ie_time}")

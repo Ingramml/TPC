@@ -289,7 +289,7 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
             "year": year
         }
 
-        logger.info(f"Successfully processed file: {os.path.basename(file_path)}")
+        logger.debug(f"Successfully processed file: {os.path.basename(file_path)}")
         return profile_dict, income_expense_dict
         
     except ET.ParseError as e:
