@@ -4,13 +4,13 @@ import pandas as pd
 from tqdm import tqdm
 import os
 import json
-import logging
 import error_handler
 from logging_setup import get_standard_logger
+from xml_helpers import safe_find_element, get_element_text
 
 
-def irs_boardmember(file_location, target_location):
-    logger = get_standard_logger('boardmembers', file_location)
+def irs_boardmember(file_location, target_location, log_dir=None):
+    logger = get_standard_logger('boardmembers', file_location, log_dir=log_dir)
 
     logger.info(f"Starting boardmember processing from {file_location} to {target_location}")
 
@@ -75,57 +75,50 @@ def irs_boardmember(file_location, target_location):
             elif returnType=='990EZ':
                     board_members=root[1].findall('./*{http://www.irs.gov/efile}OfficerDirectorTrusteeEmplGrp')
             elif returnType=='990T':
-                logger.info(f"Skipping 990T return (no board member data): {i}")
                 continue
             else:
                 logger.warning(f"Unknown return type: {returnType} for file: {i}")
                 continue
 
-            EIN = root[0].find('.//{http://www.irs.gov/efile}EIN').text
+            EIN = get_element_text(root[0].find('.//{http://www.irs.gov/efile}EIN'))
             rows = []
 
             filecheck = target_location + '/' + year + '/boardmembers_' + EIN + '.csv'
             logger.debug(f"Output file will be: {filecheck}")
 
             for board_member in board_members:
-                    Name = board_member.find("{http://www.irs.gov/efile}PersonNm").text if ET.iselement(
-                        board_member.find("{http://www.irs.gov/efile}PersonNm")) \
-                        else None
+                    Name = get_element_text(board_member.find("{http://www.irs.gov/efile}PersonNm")) or None
 
-                    Title = board_member.find('.{http://www.irs.gov/efile}TitleTxt').text if ET.iselement(
-                        board_member.find('.{http://www.irs.gov/efile}TitleTxt')) \
-                        else None
+                    Title = get_element_text(board_member.find('.{http://www.irs.gov/efile}TitleTxt')) or None
 
-                    Averagehoursworked = board_member.find('.{http://www.irs.gov/efile}AverageHoursPerWeek').text if \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}AverageHoursPerWeek')) \
-                        else board_member.find('.{http://www.irs.gov/efile}AverageHoursPerWeekRt').text if \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}AverageHoursPerWeekRt')) else \
-                        board_member.find('.{http://www.irs.gov/efile}AverageHrsPerWkDevotedToPosRt').text if  \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}AverageHrsPerWkDevotedToPosRt')) else None
-                        
-                    Individualtrusteeordirector = board_member.find('.{http://www.irs.gov/efile}IndividualTrusteeOrDirector').text \
-                        if ET.iselement(board_member.find('.{http://www.irs.gov/efile}IndividualTrusteeOrDirector')) else \
-                        board_member.find('.{http://www.irs.gov/efile}IndividualTrusteeOrDirectorInd').text if \
-                            ET.iselement(board_member.find('.{http://www.irs.gov/efile}IndividualTrusteeOrDirectorInd')) else None
+                    Averagehoursworked = (
+                        get_element_text(safe_find_element(
+                            board_member,
+                            '.{http://www.irs.gov/efile}AverageHoursPerWeek',
+                            '.{http://www.irs.gov/efile}AverageHoursPerWeekRt'))
+                        or get_element_text(board_member.find('.{http://www.irs.gov/efile}AverageHrsPerWkDevotedToPosRt'))
+                        or None)
 
-                    compensation_from_org = board_member.find(
-                        '.{http://www.irs.gov/efile}ReportableCompFromOrganization').text if \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromOrganization')) else \
-                        board_member.find('.{http://www.irs.gov/efile}ReportableCompFromOrgAmt').text if \
-                            ET.iselement(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromOrgAmt')) else \
-                            board_member.find('.{http://www.irs.gov/efile}CompensationAmt').text if \
-                            ET.iselement(board_member.find('.{http://www.irs.gov/efile}CompensationAmt')) else None
+                    Individualtrusteeordirector = get_element_text(safe_find_element(
+                        board_member,
+                        '.{http://www.irs.gov/efile}IndividualTrusteeOrDirector',
+                        '.{http://www.irs.gov/efile}IndividualTrusteeOrDirectorInd')) or None
 
-                    compensation_from_related_org = board_member.find(
-                        '.{http://www.irs.gov/efile}ReportableCompFromRelatedOrgs').text \
-                        if ET.iselement(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromRelatedOrgs')) \
-                        else board_member.find('.{http://www.irs.gov/efile}ReportableCompFromRltdOrgAmt').text if \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromRltdOrgAmt')) else None
+                    compensation_from_org = (
+                        get_element_text(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromOrganization'))
+                        or get_element_text(board_member.find('.{http://www.irs.gov/efile}ReportableCompFromOrgAmt'))
+                        or get_element_text(board_member.find('.{http://www.irs.gov/efile}CompensationAmt'))
+                        or None)
 
-                    other_compensation = board_member.find('.{http://www.irs.gov/efile}OtherCompensation').text if \
-                        ET.iselement(board_member.find('.{http://www.irs.gov/efile}OtherCompensation')) else \
-                        board_member.find('.{http://www.irs.gov/efile}OtherCompensationAmt').text if \
-                            ET.iselement(board_member.find('.{http://www.irs.gov/efile}OtherCompensationAmt')) else None
+                    compensation_from_related_org = get_element_text(safe_find_element(
+                        board_member,
+                        '.{http://www.irs.gov/efile}ReportableCompFromRelatedOrgs',
+                        '.{http://www.irs.gov/efile}ReportableCompFromRltdOrgAmt')) or None
+
+                    other_compensation = get_element_text(safe_find_element(
+                        board_member,
+                        '.{http://www.irs.gov/efile}OtherCompensation',
+                        '.{http://www.irs.gov/efile}OtherCompensationAmt')) or None
                             
                     filename = os.path.basename(i)
                     newdict = (filename, {'returnType': returnType,

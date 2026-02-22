@@ -13,7 +13,7 @@ Usage:
 import os
 import csv
 import requests
-import logging
+from tqdm import tqdm
 from TPC_990 import download_file
 from logging_setup import get_standard_logger
 
@@ -85,11 +85,12 @@ def batch_id_to_url(batch_id):
 
     Example: '2025_TEOS_XML_12A' -> 'https://apps.irs.gov/.../2025/2025_TEOS_XML_12A.zip'
     """
+    batch_id = batch_id.upper()
     year = batch_id[:4]
     return f"{BASE_URL}/{year}/{batch_id}.zip"
 
 
-def download_all(download_dir, logger=None):
+def download_all(download_dir, logger=None, log_dir=None):
     """
     Download all index CSVs, then download all zip files referenced in them.
     Skips files that already exist in download_dir.
@@ -97,9 +98,10 @@ def download_all(download_dir, logger=None):
     Args:
         download_dir: Directory to save downloaded files
         logger: Optional logger instance
+        log_dir: Explicit log directory path (prevents midnight date drift)
     """
     if logger is None:
-        logger = get_standard_logger('tpc_990', download_dir)
+        logger = get_standard_logger('tpc_990', download_dir, log_dir=log_dir)
 
     os.makedirs(download_dir, exist_ok=True)
 
@@ -119,12 +121,16 @@ def download_all(download_dir, logger=None):
 
     # Step 3: Download zip files
     sorted_ids = sorted(all_batch_ids)
-    for i, batch_id in enumerate(sorted_ids, 1):
+    failed_downloads = []
+    for batch_id in tqdm(sorted_ids, desc="Downloading zip files", unit="file"):
         url = batch_id_to_url(batch_id)
-        logger.info(f"Downloading {i}/{len(sorted_ids)}: {batch_id}.zip")
-        download_file(url, download_dir, logger)
+        if not download_file(url, download_dir, logger):
+            failed_downloads.append(f"{batch_id}.zip")
 
     logger.info("All downloads complete")
+    if failed_downloads:
+        logger.error(f"Failed to download {len(failed_downloads)} files: {failed_downloads}")
+    return failed_downloads
 
 
 if __name__ == '__main__':

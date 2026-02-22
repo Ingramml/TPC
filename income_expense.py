@@ -8,7 +8,7 @@ import logging
 
 # Import custom modules
 from logging_setup import get_standard_logger
-from error_handler import move_error_file, setup_error_logging
+from error_handler import move_error_file
 from xml_helpers import safe_find_element, get_element_text
 
 
@@ -304,16 +304,17 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
         return {}, {}
 
 
-def irs_expense_income(file_location: str, target_location: str) -> None:
+def irs_expense_income(file_location: str, target_location: str, log_dir=None) -> None:
     """
     Process IRS XML files to extract income and expense data.
-    
+
     Args:
         file_location: Path to XML files or directory
         target_location: Path to save output files
+        log_dir: Explicit log directory path (prevents midnight date drift)
     """
     # Set up logging using the logging_setup module
-    logger = get_standard_logger('income_expense', target_location)
+    logger = get_standard_logger('income_expense', target_location, log_dir=log_dir)
     logger.info(f"Starting processing: {file_location} -> {target_location}")
     
     # Determine file paths

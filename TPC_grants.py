@@ -349,34 +349,26 @@ def process_single_file(file_path: str, target_location: str, logger: logging.Lo
 
 def process_file_helper(args):
     """Helper function for multiprocessing."""
-    file_path, target_location = args[:2]  # Extract first two args
-    # Create new logger instance for this process
-    logger = get_standard_logger('grants', target_location)
+    file_path, target_location = args[0], args[1]
+    # Use a silent logger in workers — parent handles all logging
+    logger = logging.getLogger('tpc.grants.worker')
+    if not logger.handlers:
+        logger.addHandler(logging.NullHandler())
     return process_single_file(file_path, target_location, logger)
 
 
-def irs_grants(file_location: str, target_location: str) -> None:
+def irs_grants(file_location: str, target_location: str, log_dir=None) -> None:
     """
     Process IRS XML files to extract grant data.
-    
+
     Args:
         file_location: Path to XML files or directory
         target_location: Path to save output files
+        log_dir: Explicit log directory path (prevents midnight date drift)
     """
     # Set up logging using the logging_setup module
-    logger = get_standard_logger('grants', target_location)
+    logger = get_standard_logger('grants', target_location, log_dir=log_dir)
     logger.info(f"Starting grants processing: {file_location} -> {target_location}")
-
-    # Log expected JSON file location FIRST
-    expected_json_path = os.path.join(target_location, "grant_profiles.json")
-    logger.info(f"=== JSON FILE LOCATION DEBUG ===")
-    logger.info(f"Target location parameter: {target_location}")
-    logger.info(f"Parent directory: {os.path.dirname(target_location)}")
-    logger.info(f"Expected JSON file path: {expected_json_path}")
-    logger.info(f"JSON parent directory exists: {os.path.exists(os.path.dirname(target_location))}")
-    logger.info(f"JSON file currently exists: {os.path.exists(expected_json_path)}")
-    if os.path.exists(expected_json_path):
-        logger.info(f"Existing JSON file size: {os.path.getsize(expected_json_path)} bytes")
 
     # Determine file paths
     files = []
@@ -398,7 +390,7 @@ def irs_grants(file_location: str, target_location: str) -> None:
 
     logger.info(f"Found {len(files)} XML files to process")
 
-    # Create argument tuples for multiprocessing (only pass first 2 args)
+    # Create argument tuples for multiprocessing
     args = [(file, target_location) for file in files]
 
     # Use multiprocessing to process files in parallel

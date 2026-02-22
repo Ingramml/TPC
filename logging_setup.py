@@ -27,7 +27,7 @@ def _resolve_log_dir(base_path):
     return log_dir
 
 
-def setup_logging(base_path=None, module_name="tpc", level=logging.INFO, console_output=False):
+def setup_logging(base_path=None, module_name="tpc", level=logging.INFO, console_output=False, log_dir=None):
     """
     Create a named logger with its own file handler.
 
@@ -36,11 +36,15 @@ def setup_logging(base_path=None, module_name="tpc", level=logging.INFO, console
         module_name: Name of the module (used for logger name and log filename)
         level: Logging level (default: logging.INFO)
         console_output: Whether to also log to console
+        log_dir: Explicit log directory path (skips _resolve_log_dir if provided)
 
     Returns:
         logging.Logger: Configured logger instance
     """
-    log_dir = _resolve_log_dir(base_path)
+    if log_dir is None:
+        log_dir = _resolve_log_dir(base_path)
+    else:
+        os.makedirs(log_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     log_filename = os.path.join(log_dir, f'tpc_{module_name}_{timestamp}.log')
 
@@ -64,9 +68,7 @@ def setup_logging(base_path=None, module_name="tpc", level=logging.INFO, console
             console_handler.setFormatter(formatter)
             logger.addHandler(console_handler)
 
-    logger.info(f"Logging initialized for module: {module_name}")
-    logger.info(f"Log file: {log_filename}")
-    logger.info(f"Working directory: {base_path}")
+
 
     return logger
 
@@ -142,13 +144,14 @@ MODULE_CONFIGS = {
 }
 
 
-def get_standard_logger(module_type, base_path=None):
+def get_standard_logger(module_type, base_path=None, log_dir=None):
     """
     Get a logger with predefined configuration for a TPC module.
 
     Args:
         module_type: Module key from MODULE_CONFIGS
         base_path: Base path for log directory
+        log_dir: Explicit log directory path (skips _resolve_log_dir if provided)
 
     Returns:
         logging.Logger: Configured logger instance
@@ -160,5 +163,6 @@ def get_standard_logger(module_type, base_path=None):
     return setup_logging(
         base_path=base_path,
         module_name=module_type,
-        console_output=config['console_output']
+        console_output=config['console_output'],
+        log_dir=log_dir
     )

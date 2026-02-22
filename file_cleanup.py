@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import logging
 from typing import List, Optional
-from pathlib import Path
 
 
 def delete_all_files_in_folder(folder_path: str, logger: Optional[logging.Logger] = None) -> bool:
@@ -65,7 +64,7 @@ def delete_all_files_in_folder(folder_path: str, logger: Optional[logging.Logger
         return False
 
 
-def delete_folder_contents_recursive(folder_path: str, exclude_patterns: List[str] = None, logger: Optional[logging.Logger] = None) -> bool:
+def delete_folder_contents_recursive(folder_path: str, exclude_patterns: Optional[List[str]] = None, logger: Optional[logging.Logger] = None) -> bool:
     """
     Recursively delete folder contents with optional exclusion patterns.
     
@@ -211,7 +210,7 @@ def empty_trash(logger: Optional[logging.Logger] = None) -> bool:
         return False
 
 
-def cleanup_old_files(folder_path: str, days_old: int = 7, file_patterns: List[str] = None, logger: Optional[logging.Logger] = None) -> int:
+def cleanup_old_files(folder_path: str, days_old: int = 7, file_patterns: Optional[List[str]] = None, logger: Optional[logging.Logger] = None) -> int:
     """
     Delete files older than specified number of days.
     
@@ -314,37 +313,5 @@ def format_file_size(size_bytes: int) -> str:
 
 # Example usage and testing
 if __name__ == '__main__':
-    delete_all_files_in_folder('/Volumes/TPC/2025-07-07')
-    """
-    import logging
-    
-    # Setup logging
-    logging.basicConfig(level=logging.ERROR, 
-                       format='%(asctime)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger(__name__)
-    
-    # Test folder path (use a safe test directory)
-    test_folder = "/Volumes/TPC/2025-07-07"
-    
-    # Create test folder and files
-    os.makedirs(test_folder, exist_ok=True)
-    with open(os.path.join(test_folder, "test_file.txt"), "w") as f:
-        f.write("Test content")
-    
-    logger.info(f"Created test folder: {test_folder}")
-    
-    # Test cleanup
-    size_before = get_folder_size(test_folder)
-    logger.info(f"Folder size before cleanup: {format_file_size(size_before)}")
-    
-    # Test deletion
-    success = delete_all_files_in_folder(test_folder, logger)
-    logger.info(f"Cleanup successful: {success}")
-    
-    size_after = get_folder_size(test_folder)
-    logger.info(f"Folder size after cleanup: {format_file_size(size_after)}")
-    
-    # Clean up test folder
-    os.rmdir(test_folder)
-    logger.info("Test completed")
-    """
+    delete_all_files_in_folder('/Volumes/TPC/2026-02-20')
+    empty_trash()
