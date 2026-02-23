@@ -313,5 +313,5 @@ def format_file_size(size_bytes: int) -> str:
 
 # Example usage and testing
 if __name__ == '__main__':
-    delete_all_files_in_folder('/Volumes/TPC/2026-02-20')
+    delete_all_files_in_folder('/Volumes/TPC/2026-02-21')
     empty_trash()

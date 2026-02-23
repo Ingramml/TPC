@@ -1,6 +1,4 @@
 {
-    // Terminal settings for audio feedback
-    "terminal.integrated.enableBell": true,
     "terminal.integrated.bellDuration": 1000,
     
     // Task completion notifications
@@ -16,5 +14,9 @@
     "files.autoSaveDelay": 1000,
     
     // Extensions that can help with notifications
-    "extensions.ignoreRecommendations": false
+    "extensions.ignoreRecommendations": false,
+    "accessibility.signals.terminalBell": {
+        "sound": "on"
+    },
+    "terminal.integrated.enableVisualBell": true
 }
