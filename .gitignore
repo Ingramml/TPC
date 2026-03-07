@@ -17,3 +17,4 @@ task.json
 *.xsd
 terminalcommands.txt
 *.json
+reports/*.pdf
